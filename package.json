@@ -1,0 +1,48 @@
+{
+  "name": "async-crypter",
+  "version": "0.0.1",
+  "description": "Easy, safe and powerful asynchronous AES-256-GCM encryption for NodeJS",
+  "main": "./dist",
+  "types": "./dist",
+  "scripts": {
+    "test": "nyc mocha --parallel",
+    "typecheck": "tsc",
+    "build": "tsc -b tsconfig.prod.json",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miladiir/node-async-crypter-ts.git"
+  },
+  "keywords": [
+    "encryption",
+    "decryption",
+    "node",
+    "crypto",
+    "cryptography",
+    "file-encryption",
+    "text-encryption",
+    "buffer-encryption"
+  ],
+  "author": "Oliver Conzen",
+  "license": "Unlicense",
+  "bugs": {
+    "url": "https://github.com/Miladiir/node-async-crypter-ts/issues"
+  },
+  "homepage": "https://github.com/Miladiir/node-async-crypter-ts#readme",
+  "funding": "https://github.com/sponsors/Miladiir",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chai": "^4.2.15",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^14.14.41",
+    "chai": "^4.3.4",
+    "mocha": "^8.3.2",
+    "nyc": "^15.1.0",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.3"
+  },
+  "files": [
+    "dist"
+  ]
+}
