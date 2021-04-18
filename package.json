@@ -1,6 +1,6 @@
 {
   "name": "async-crypter",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Easy, safe and powerful asynchronous AES-256-GCM encryption for NodeJS",
   "main": "./dist",
   "types": "./dist",
