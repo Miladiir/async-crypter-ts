@@ -1,0 +1,5 @@
+Tag v1.0.0:
+Features:
+- Added Crypter, an asynchronous AES-256-GCM Buffer encryption and decryption helper class
+Documentation:
+- Crypter
