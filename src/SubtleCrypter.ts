@@ -4,12 +4,12 @@ import {randomBytes} from "crypto";
 import {DecryptionError} from "./errors/DecryptionError";
 import {webcrypto} from "crypto";
 
-const fuck = webcrypto as any;
-const subtle = fuck.subtle as SubtleCrypto;
+const webcrypto1 = webcrypto as any;
+const subtle = webcrypto1.subtle as SubtleCrypto;
+
 /**
  * Performs AES-256-GCM encryption and decryption of buffers.
- * The encrypted buffers contain the salt (64 bytes), the iv (16 bytes), the tag (16 bytes)
- * and finally the encrypted value (rest of the buffer).
+ * The encrypted buffers contain the salt (64 bytes), the iv (16 bytes), the encrypted value and, finally the tag (16 bytes)
  */
 export class SubtleCrypter {
 
@@ -27,6 +27,11 @@ export class SubtleCrypter {
      * The length of a salt in bytes.
      */
     private static readonly saltLength = 64;
+
+    /**
+     * The length of an authentication tag in bits.
+     */
+    private static readonly tagLength = 128;
 
     /**
      * The offset of the authentication tag in bytes.
@@ -82,6 +87,7 @@ export class SubtleCrypter {
             result = Buffer.from(await subtle.encrypt({
                 name: SubtleCrypter.algorithm,
                 iv,
+                tagLength: SubtleCrypter.tagLength,
                 additionalData: additionalAuthenticatedData
             }, key, value));
         } catch (e) {
@@ -121,6 +127,7 @@ export class SubtleCrypter {
             result = Buffer.from(await subtle.decrypt({
                 name: SubtleCrypter.algorithm,
                 iv,
+                tagLength: SubtleCrypter.tagLength,
                 additionalData: additionalAuthenticatedData
             }, key, encrypted));
         } catch (e) {

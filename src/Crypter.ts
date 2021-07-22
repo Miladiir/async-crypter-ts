@@ -6,8 +6,7 @@ import {DecryptionError} from "./errors/DecryptionError";
 
 /**
  * Performs AES-256-GCM encryption and decryption of buffers.
- * The encrypted buffers contain the salt (64 bytes), the iv (16 bytes), the tag (16 bytes)
- * and finally the encrypted value (rest of the buffer).
+ * The encrypted buffers contain the salt (64 bytes), the iv (16 bytes), the encrypted value and, finally the tag (16 bytes)
  */
 export class Crypter {
 
@@ -32,14 +31,9 @@ export class Crypter {
     private static readonly tagLength = 16;
 
     /**
-     * The offset of the authentication tag in bytes.
-     */
-    private static readonly tagPosition = Crypter.saltLength + Crypter.ivLength;
-
-    /**
      * The offset of the encrypted value in bytes.
      */
-    private static readonly encryptedPosition = Crypter.tagPosition + Crypter.tagLength;
+    private static readonly encryptedPosition = Crypter.saltLength + Crypter.ivLength;
 
     /**
      * Promisified crypto.pbkdf2
@@ -83,7 +77,7 @@ export class Crypter {
         const iv = randomBytes(Crypter.ivLength);
         const salt = randomBytes(Crypter.saltLength);
         const key = await this.generateKey(salt);
-        const cipher = createCipheriv(Crypter.algorithm, key, iv);
+        const cipher = createCipheriv(Crypter.algorithm, key, iv, {authTagLength: Crypter.tagLength});
         if (additionalAuthenticatedData != null) {
             if (additionalAuthenticatedData instanceof Buffer && additionalAuthenticatedData.length !== 0) {
                 cipher.setAAD(additionalAuthenticatedData);
@@ -102,7 +96,7 @@ export class Crypter {
             return new EncryptionError("Unknown error");
         }
 
-        return Buffer.concat([salt, iv, authTag, updatedBuffer, finalBuffer]);
+        return Buffer.concat([salt, iv, updatedBuffer, finalBuffer, authTag]);
     }
 
     /**
@@ -118,12 +112,13 @@ export class Crypter {
             return new DecryptionError(ErrorMessage.INVALID_DECRYPTION_VALUE);
         }
 
+        const tagPosition = value.length - Crypter.tagLength;
         const salt = value.slice(0, Crypter.saltLength);
         const key = await this.generateKey(salt);
-        const iv = value.slice(Crypter.saltLength, Crypter.tagPosition);
-        const tag = value.slice(Crypter.tagPosition, Crypter.encryptedPosition);
-        const encrypted = value.slice(Crypter.encryptedPosition);
-        const decipher = createDecipheriv(Crypter.algorithm, key, iv);
+        const iv = value.slice(Crypter.saltLength, Crypter.encryptedPosition);
+        const encrypted = value.slice(Crypter.encryptedPosition, tagPosition);
+        const tag = value.slice(tagPosition, value.length);
+        const decipher = createDecipheriv(Crypter.algorithm, key, iv, {authTagLength: Crypter.tagLength});
         if (additionalAuthenticatedData != null) {
             if (additionalAuthenticatedData instanceof Buffer && additionalAuthenticatedData.length !== 0) {
                 decipher.setAAD(additionalAuthenticatedData);
