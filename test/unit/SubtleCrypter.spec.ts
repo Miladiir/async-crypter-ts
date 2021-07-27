@@ -2,9 +2,7 @@ import {expect} from "chai";
 import {SubtleCrypter} from "../../src/SubtleCrypter";
 import {DecryptionError, EncryptionError} from "../../src";
 import {Crypto} from "@peculiar/webcrypto";
-
 const crypto = new Crypto();
-
 // @ts-ignore
 global.crypto = crypto;
 describe("SubtleCrypter", (): void => {

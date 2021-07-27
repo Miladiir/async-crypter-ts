@@ -1,6 +1,10 @@
 import {expect} from "chai";
 import {Crypter} from "../../src";
 import {SubtleCrypter} from "../../src/SubtleCrypter";
+import {Crypto} from "@peculiar/webcrypto";
+const crypto = new Crypto();
+// @ts-ignore
+global.crypto = crypto;
 
 describe("Interoperability between implementations", () => {
 
