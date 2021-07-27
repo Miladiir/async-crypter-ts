@@ -2,10 +2,6 @@ import {EncryptionError} from "./errors/EncryptionError";
 import {ErrorMessage} from "./errors/ErrorMessage";
 import {randomBytes} from "crypto";
 import {DecryptionError} from "./errors/DecryptionError";
-import {webcrypto} from "crypto";
-
-const webcrypto1 = webcrypto as any;
-const subtle = webcrypto1.subtle as SubtleCrypto;
 
 /**
  * Performs AES-256-GCM encryption and decryption of buffers.
@@ -84,7 +80,7 @@ export class SubtleCrypter {
         }
         let result: Buffer;
         try {
-            result = Buffer.from(await subtle.encrypt({
+            result = Buffer.from(await crypto.subtle.encrypt({
                 name: SubtleCrypter.algorithm,
                 iv,
                 tagLength: SubtleCrypter.tagLength,
@@ -124,7 +120,7 @@ export class SubtleCrypter {
         }
         let result: Buffer;
         try {
-            result = Buffer.from(await subtle.decrypt({
+            result = Buffer.from(await crypto.subtle.decrypt({
                 name: SubtleCrypter.algorithm,
                 iv,
                 tagLength: SubtleCrypter.tagLength,
@@ -144,8 +140,8 @@ export class SubtleCrypter {
      * @returns An encryption key used to encrypt or decrypt a buffer.
      */
     private async generateKey(salt: Buffer): Promise<CryptoKey> {
-        const key = await subtle.importKey("raw", this.#secret, "PBKDF2", false, ["deriveBits", "deriveKey"]);
-        return subtle.deriveKey({
+        const key = await crypto.subtle.importKey("raw", this.#secret, "PBKDF2", false, ["deriveBits", "deriveKey"]);
+        return crypto.subtle.deriveKey({
             name: "PBKDF2",
             iterations: 100000,
             hash: "SHA-512",

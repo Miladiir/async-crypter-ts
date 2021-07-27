@@ -33,6 +33,7 @@
   "funding": "https://github.com/sponsors/Miladiir",
   "dependencies": {},
   "devDependencies": {
+    "@peculiar/webcrypto": "^1.1.7",
     "@types/chai": "^4.2.15",
     "@types/mocha": "^9.0.0",
     "@types/node": "^17.0.0",
