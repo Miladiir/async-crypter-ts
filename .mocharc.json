@@ -13,5 +13,6 @@
   "forbid-pending": true,
   "require": [
     "ts-node/register"
-  ]
+  ],
+  "global": ["crypto"]
 }

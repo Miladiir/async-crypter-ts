@@ -1,6 +1,6 @@
 import {expect} from "chai";
-import {Crypter} from "../src/Crypter";
-import {DecryptionError, EncryptionError} from "../src";
+import {Crypter} from "../../src/Crypter";
+import {DecryptionError, EncryptionError} from "../../src";
 
 describe("Crypter", (): void => {
 
@@ -67,7 +67,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.alloc(0);
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             expect(encrypted.byteLength).to.be.at.least(64 + 16 + 16);
         });
 
@@ -111,7 +114,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             const decrypted = await crypter.decrypt(encrypted);
             expect(buffer.toString()).to.equal(decrypted.toString());
         });
@@ -120,7 +126,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter1 = new Crypter(secret);
-            const encrypted = await crypter1.encrypt(buffer) as Buffer;
+            const encrypted = await crypter1.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             const crypter2 = new Crypter(secret);
             const decrypted = await crypter2.decrypt(encrypted);
             expect(buffer.toString()).to.equal(decrypted.toString());
@@ -146,7 +155,10 @@ describe("Crypter", (): void => {
             const buffer = Buffer.from(value);
             const additionalData = Buffer.from("Some additional data, like a userId, a random secret or something");
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer, additionalData) as Buffer;
+            const encrypted = await crypter.encrypt(buffer, additionalData);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             const decrypted = await crypter.decrypt(encrypted, additionalData);
             expect(buffer.toString()).to.equal(decrypted.toString());
         });
@@ -155,9 +167,12 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter1 = new Crypter(secret);
-            const encrypted = await crypter1.encrypt(buffer) as Buffer;
+            const encrypted = await crypter1.encrypt(buffer);
             const wrongSecret = secret.replace("secure", "insecure");
             const crypter2 = new Crypter(wrongSecret);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             const decrypted = await crypter2.decrypt(encrypted);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
@@ -167,7 +182,10 @@ describe("Crypter", (): void => {
             const buffer = Buffer.from(value);
             const additionalData = Buffer.from("Some additional data, like a userId, a random secret or something");
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer, additionalData) as Buffer;
+            const encrypted = await crypter.encrypt(buffer, additionalData);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             const decrypted = await crypter.decrypt(encrypted, buffer);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
@@ -177,7 +195,10 @@ describe("Crypter", (): void => {
             const buffer = Buffer.from(value);
             const additionalData = Buffer.from("Some additional data, like a userId, a random secret or something");
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer, additionalData) as Buffer;
+            const encrypted = await crypter.encrypt(buffer, additionalData);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             const decrypted = await crypter.decrypt(encrypted);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
@@ -187,7 +208,10 @@ describe("Crypter", (): void => {
             const buffer = Buffer.from(value);
             const additionalData = Buffer.from("Some additional data, like a userId, a random secret or something");
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             const decrypted = await crypter.decrypt(encrypted, additionalData);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
@@ -196,7 +220,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             encrypted.writeUInt8(0x00, 12);
             const decrypted = await crypter.decrypt(encrypted);
             expect(decrypted).to.be.instanceOf(DecryptionError);
@@ -206,7 +233,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             encrypted.writeUInt8(0x00, 64 + 3);
             const decrypted = await crypter.decrypt(encrypted);
             expect(decrypted).to.be.instanceOf(DecryptionError);
@@ -216,7 +246,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             encrypted.writeUInt8(0x00, 64 + 16 + 2);
             const decrypted = await crypter.decrypt(encrypted);
             expect(decrypted).to.be.instanceOf(DecryptionError);
@@ -226,7 +259,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             encrypted.writeUInt8(0x00, 64 + 16 + 16 + 12);
             const decrypted = await crypter.decrypt(encrypted);
             expect(decrypted).to.be.instanceOf(DecryptionError);
@@ -237,7 +273,10 @@ describe("Crypter", (): void => {
             const buffer = Buffer.from(value);
             const crypter = new Crypter(secret);
             const aad = Buffer.alloc(0);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             expect(await crypter.decrypt(encrypted, aad)).to.be.instanceOf(DecryptionError);
         });
 
@@ -245,7 +284,10 @@ describe("Crypter", (): void => {
 
             const buffer = Buffer.from(value);
             const crypter = new Crypter(secret);
-            const encrypted = await crypter.encrypt(buffer) as Buffer;
+            const encrypted = await crypter.encrypt(buffer);
+            if (encrypted instanceof Error) {
+                expect.fail();
+            }
             // @ts-expect-error Explicitly test incompatible types
             expect(await crypter.decrypt(encrypted, 0)).to.be.instanceOf(DecryptionError);
             // @ts-expect-error Explicitly test incompatible types

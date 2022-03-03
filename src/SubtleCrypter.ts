@@ -1,19 +1,18 @@
-import {createCipheriv, createDecipheriv, pbkdf2, randomBytes} from "crypto";
-import {promisify} from "util";
 import {EncryptionError} from "./errors/EncryptionError";
 import {ErrorMessage} from "./errors/ErrorMessage";
 import {DecryptionError} from "./errors/DecryptionError";
+
 
 /**
  * Performs AES-256-GCM encryption and decryption of buffers.
  * The encrypted buffers contain the salt (64 bytes), the iv (16 bytes), the encrypted value and, finally the tag (16 bytes)
  */
-export class Crypter {
+export class SubtleCrypter {
 
     /**
      * The algorithm in use.
      */
-    private static readonly algorithm = 'aes-256-gcm';
+    private static readonly algorithm = 'AES-GCM';
 
     /**
      * The length of an initialization vector in bytes.
@@ -26,36 +25,31 @@ export class Crypter {
     private static readonly saltLength = 64;
 
     /**
-     * The length of an authentication tag in bytes.
+     * The length of an authentication tag in bits.
      */
-    private static readonly tagLength = 16;
+    private static readonly tagLength = 128;
 
     /**
-     * The offset of the encrypted value in bytes.
+     * The offset of the authentication tag in bytes.
      */
-    private static readonly encryptedPosition = Crypter.saltLength + Crypter.ivLength;
-
-    /**
-     * Promisified crypto.pbkdf2
-     */
-    private static readonly pbkdf2 = promisify(pbkdf2);
+    private static readonly encryptedPosition = SubtleCrypter.saltLength + SubtleCrypter.ivLength;
 
     /**
      * The secret used to encrypt and decrypt values by this instance.
      */
-    readonly #secret: Buffer;
+    readonly #secret: Uint8Array;
 
     /**
-     * Initiate a new Crypter instance with the specified secret.
+     * Initiate a new SubtleCrypter instance with the specified secret.
      * @param secret The secret used to encrypt and decrypt values.
      * @throws Error when passed anything but a non-empty string or Buffer.
      */
-    public constructor(secret: string | Buffer) {
+    public constructor(secret: string | Uint8Array) {
 
-        if (secret instanceof Buffer && secret.length !== 0) {
+        if (secret instanceof Uint8Array && secret.length !== 0) {
             this.#secret = secret;
         } else if (typeof secret === "string" && secret.length !== 0) {
-            this.#secret = Buffer.from(secret);
+            this.#secret = new TextEncoder().encode(secret);
         } else {
             throw new Error(ErrorMessage.INVALID_SECRET);
         }
@@ -68,35 +62,35 @@ export class Crypter {
      * @param additionalAuthenticatedData Additional data that influences encryption outcome.
      * @returns The uniquely and symmetrically encrypted value.
      */
-    public async encrypt(value: Buffer, additionalAuthenticatedData?: Buffer): Promise<Buffer | EncryptionError> {
+    public async encrypt(value: Uint8Array, additionalAuthenticatedData?: Uint8Array): Promise<Uint8Array | EncryptionError> {
 
-        if (!(value instanceof Buffer)) {
+        if (!(value instanceof Uint8Array)) {
 
             return new EncryptionError(ErrorMessage.INVALID_ENCRYPTION_VALUE);
         }
-        const iv = randomBytes(Crypter.ivLength);
-        const salt = randomBytes(Crypter.saltLength);
+        const iv = crypto.getRandomValues(new Uint8Array(SubtleCrypter.ivLength));
+        const salt = crypto.getRandomValues(new Uint8Array(SubtleCrypter.saltLength));
         const key = await this.generateKey(salt);
-        const cipher = createCipheriv(Crypter.algorithm, key, iv, {authTagLength: Crypter.tagLength});
         if (additionalAuthenticatedData != null) {
-            if (additionalAuthenticatedData instanceof Buffer && additionalAuthenticatedData.length !== 0) {
-                cipher.setAAD(additionalAuthenticatedData);
+            if (additionalAuthenticatedData instanceof Uint8Array && additionalAuthenticatedData.byteLength !== 0) {
             } else {
 
                 return new EncryptionError(ErrorMessage.INVALID_AAD);
             }
         }
-        let updatedBuffer, finalBuffer, authTag: Buffer;
+        let result: Uint8Array;
         try {
-            updatedBuffer = cipher.update(value);
-            finalBuffer = cipher.final();
-            authTag = cipher.getAuthTag();
+            result = new Uint8Array(await crypto.subtle.encrypt({
+                name: SubtleCrypter.algorithm,
+                iv,
+                tagLength: SubtleCrypter.tagLength,
+                additionalData: additionalAuthenticatedData
+            }, key, value));
         } catch (e) {
 
             return new EncryptionError("Unknown error");
         }
-
-        return Buffer.concat([salt, iv, updatedBuffer, finalBuffer, authTag]);
+        return Buffer.concat([salt, iv, result]);
     }
 
     /**
@@ -105,39 +99,38 @@ export class Crypter {
      * @param additionalAuthenticatedData Additional data that was used to influence encryption outcome.
      * @returns The decrypted buffer containing the original value.
      */
-    public async decrypt(value: Buffer, additionalAuthenticatedData?: Buffer): Promise<Buffer | DecryptionError> {
+    public async decrypt(value: Uint8Array, additionalAuthenticatedData?: Uint8Array): Promise<Uint8Array | DecryptionError> {
 
-        if (!(value instanceof Buffer) || value.byteLength < Crypter.encryptedPosition) {
+        if (!(value instanceof Uint8Array) || value.byteLength < SubtleCrypter.encryptedPosition) {
 
             return new DecryptionError(ErrorMessage.INVALID_DECRYPTION_VALUE);
         }
 
-        const tagPosition = value.length - Crypter.tagLength;
-        const salt = value.slice(0, Crypter.saltLength);
+        const salt = value.slice(0, SubtleCrypter.saltLength);
         const key = await this.generateKey(salt);
-        const iv = value.slice(Crypter.saltLength, Crypter.encryptedPosition);
-        const encrypted = value.slice(Crypter.encryptedPosition, tagPosition);
-        const tag = value.slice(tagPosition, value.length);
-        const decipher = createDecipheriv(Crypter.algorithm, key, iv, {authTagLength: Crypter.tagLength});
+        const iv = value.slice(SubtleCrypter.saltLength, SubtleCrypter.encryptedPosition);
+        const encrypted = value.slice(SubtleCrypter.encryptedPosition);
         if (additionalAuthenticatedData != null) {
-            if (additionalAuthenticatedData instanceof Buffer && additionalAuthenticatedData.length !== 0) {
-                decipher.setAAD(additionalAuthenticatedData);
+            if (additionalAuthenticatedData instanceof Uint8Array && additionalAuthenticatedData.length !== 0) {
             } else {
 
                 return new DecryptionError(ErrorMessage.INVALID_AAD);
             }
         }
-        decipher.setAuthTag(tag);
-        let updatedBuffer, finalBuffer: Buffer;
+        let result: Uint8Array;
         try {
-            updatedBuffer = decipher.update(encrypted);
-            finalBuffer = decipher.final();
+            result = await crypto.subtle.decrypt({
+                name: SubtleCrypter.algorithm,
+                iv,
+                tagLength: SubtleCrypter.tagLength,
+                additionalData: additionalAuthenticatedData
+            }, key, encrypted);
         } catch (e) {
 
             return new DecryptionError(ErrorMessage.DECRYPTION_FAILED);
         }
 
-        return Buffer.concat([updatedBuffer, finalBuffer]);
+        return result;
     }
 
     /**
@@ -145,8 +138,13 @@ export class Crypter {
      * @param salt A salt, either a new random sequence or stored in an encrypted buffer.
      * @returns An encryption key used to encrypt or decrypt a buffer.
      */
-    private generateKey(salt: Buffer): Promise<Buffer> {
-
-        return Crypter.pbkdf2(this.#secret, salt, 100000, 32, 'sha512');
+    private async generateKey(salt: Uint8Array): Promise<CryptoKey> {
+        const key = await crypto.subtle.importKey("raw", this.#secret, "PBKDF2", false, ["deriveBits", "deriveKey"]);
+        return crypto.subtle.deriveKey({
+            name: "PBKDF2",
+            iterations: 100000,
+            hash: "SHA-512",
+            salt
+        }, key, {name: SubtleCrypter.algorithm, length: 256}, false, ["encrypt", "decrypt"]);
     }
 }
