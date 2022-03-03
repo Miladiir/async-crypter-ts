@@ -2,9 +2,22 @@ import {expect} from "chai";
 import {SubtleCrypter} from "../../src/SubtleCrypter";
 import {DecryptionError, EncryptionError} from "../../src";
 import {Crypto} from "@peculiar/webcrypto";
-const crypto = new Crypto();
-// @ts-ignore
-global.crypto = crypto;
+import {webcrypto} from "crypto";
+import semver from "semver"
+
+before(() => {
+    let crypto;
+    if (semver.gte(process.version, '15.0.0')) {
+        console.info("Using nodejs webcrypto");
+        crypto = webcrypto
+    } else {
+        console.info("Using peculiar webcrypto")
+        crypto = new Crypto();
+    }
+    // @ts-ignore
+    global.crypto = crypto;
+});
+
 describe("SubtleCrypter", (): void => {
 
     const secret = "This is a very secure secret and I will get mad if you think otherwise.";
@@ -122,7 +135,10 @@ describe("SubtleCrypter", (): void => {
                 expect.fail();
             }
             const decrypted = await crypter.decrypt(encrypted);
-            expect(buffer.toString()).to.equal(decrypted.toString());
+            if (decrypted instanceof Error) {
+                expect.fail()
+            }
+            expect(buffer.toString()).to.equal(Buffer.from(decrypted).toString());
         });
 
         it("should be able to decrypt data (same password)", async (): Promise<void> => {
@@ -135,7 +151,10 @@ describe("SubtleCrypter", (): void => {
             }
             const crypter2 = new SubtleCrypter(secret);
             const decrypted = await crypter2.decrypt(encrypted);
-            expect(buffer.toString()).to.equal(decrypted.toString());
+            if (decrypted instanceof Error) {
+                expect.fail()
+            }
+            expect(buffer.toString()).to.equal(Buffer.from(decrypted).toString());
         });
 
         it("should fail for non Buffer values", async (): Promise<void> => {
@@ -163,7 +182,10 @@ describe("SubtleCrypter", (): void => {
                 expect.fail();
             }
             const decrypted = await crypter.decrypt(encrypted, additionalData);
-            expect(buffer.toString()).to.equal(decrypted.toString());
+            if (decrypted instanceof Error) {
+                expect.fail()
+            }
+            expect(buffer.toString()).to.equal(Buffer.from(decrypted).toString());
         });
 
         it("should not be able to decrypt data with wrong password", async (): Promise<void> => {
@@ -227,8 +249,9 @@ describe("SubtleCrypter", (): void => {
             if (encrypted instanceof Error) {
                 expect.fail();
             }
-            encrypted.writeUInt8(0x00, 12);
-            const decrypted = await crypter.decrypt(encrypted);
+            const newBuffer = Buffer.from(encrypted)
+            newBuffer.writeUInt8(0x00, 12);
+            const decrypted = await crypter.decrypt(newBuffer);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
 
@@ -240,8 +263,9 @@ describe("SubtleCrypter", (): void => {
             if (encrypted instanceof Error) {
                 expect.fail();
             }
-            encrypted.writeUInt8(0x00, 64 + 3);
-            const decrypted = await crypter.decrypt(encrypted);
+            const newBuffer = Buffer.from(encrypted)
+            newBuffer.writeUInt8(0x00, 64 + 3);
+            const decrypted = await crypter.decrypt(newBuffer);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
 
@@ -253,8 +277,9 @@ describe("SubtleCrypter", (): void => {
             if (encrypted instanceof Error) {
                 expect.fail();
             }
-            encrypted.writeUInt8(0x00, 64 + 16 + 2);
-            const decrypted = await crypter.decrypt(encrypted);
+            const newBuffer = Buffer.from(encrypted);
+            newBuffer.writeUInt8(0x00, 64 + 16 + 2);
+            const decrypted = await crypter.decrypt(newBuffer);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
 
@@ -266,8 +291,9 @@ describe("SubtleCrypter", (): void => {
             if (encrypted instanceof Error) {
                 expect.fail();
             }
-            encrypted.writeUInt8(0x00, 64 + 16 + 16 + 12);
-            const decrypted = await crypter.decrypt(encrypted);
+            const newBuffer = Buffer.from(encrypted)
+            newBuffer.writeUInt8(0x00, 64 + 16 + 16 + 12);
+            const decrypted = await crypter.decrypt(newBuffer);
             expect(decrypted).to.be.instanceOf(DecryptionError);
         });
 
@@ -298,3 +324,8 @@ describe("SubtleCrypter", (): void => {
         })
     });
 });
+
+after(() => {
+    // @ts-ignore
+    delete global.crypto;
+})
